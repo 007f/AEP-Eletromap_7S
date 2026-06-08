@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autenticação no Sistema</title>
+    <link rel="stylesheet" href="./css/login-style.css">
+</head>
+<body>
+    <div class="login-container">
+        <form id="loginForm" method="post">
+            <h2>Autenticação no Sistema</h2>
+
+            <div class="input-group">
+                <label for="credencial">Credencial de Acesso</label>
+                <input type="text" name="credencial" id="credencial" required placeholder="Digite sua credencial de acesso">
+            </div>
+
+            <div class="input-group">
+                <label for="password">Senha</label>
+                <input type="password" name="password" id="password" required placeholder="Digite sua senha">
+            </div>
+
+            <button type="submit">Entrar</button>
+
+             <p id="errorMessage"></p>
+        </form>
+    </div>
+
+    <script src="./js/login-script.js"></script>
+</body>
+</html>
