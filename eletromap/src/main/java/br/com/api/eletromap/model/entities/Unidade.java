@@ -28,6 +28,7 @@ public class Unidade {
     private String condicaoClimatica;
 
     // Mapeamento para conexões onde esta unidade é a ORIGEM
+    // JsonManagerReference impede a chamada de objetos infinitos que se apontam
     @JsonManagedReference("unidade-origem-conexoes")
     @OneToMany(mappedBy = "origem", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Conexao> conexoesDeOrigem = new ArrayList<>();

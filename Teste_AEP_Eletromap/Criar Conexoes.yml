@@ -1,0 +1,22 @@
+info:
+  name: Criar Conexoes
+  type: http
+  seq: 5
+
+http:
+  method: POST
+  url: http://localhost:8080/conexoes
+  body:
+    type: json
+    data: |-
+      {
+        "unidadeOrigemId": 1,
+        "unidadeDestinoId": 2
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

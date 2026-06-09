@@ -1,0 +1,28 @@
+info:
+  name: Atualizar Unidade - Identificando o Problema
+  type: http
+  seq: 7
+
+http:
+  method: PUT
+  url: http://localhost:8080/unidades/1
+  body:
+    type: json
+    data: |-
+      {
+        "endereco": "Avenida Colombo, 1000",
+        "status": "IDENTIFICADO", 
+        "idadeAnos": 40,
+        "temperaturaC": 25.0,
+        "velocidadeVentoKmh": 10.0,
+        "cargaMw": 0.0,
+        "diasUltimaManutencao": 800,
+        "condicaoClimatica": "Normal"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

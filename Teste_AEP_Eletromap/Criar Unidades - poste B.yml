@@ -1,0 +1,28 @@
+info:
+  name: Criar Unidades - poste B
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: http://localhost:8080/unidades
+  body:
+    type: json
+    data: |-
+      {
+        "endereco": "Avenida Colombo, 1050",
+        "status": "NORMAL",
+        "idadeAnos": 3,
+        "temperaturaC": 26.0,
+        "velocidadeVentoKmh": 12.0,
+        "cargaMw": 28.5,
+        "diasUltimaManutencao": 15,
+        "condicaoClimatica": "Ensolarado"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
