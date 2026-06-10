@@ -1,10 +1,8 @@
-// Variáveis Globais
 let allUnits = [];
 let filteredUnits = [];
 let currentEditingId = null;
 const apiUrl = '/unidades';
 
-// Elementos do DOM
 const elements = {
     searchInput: document.getElementById('search-address'),
     filterStatus: document.getElementById('filter-status'),
@@ -27,289 +25,121 @@ const elements = {
     toastContainer: document.getElementById('toast-container')
 };
 
-// Inicializar a Aplicação
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', () => {
     loadUnits();
     bindEvents();
 });
 
-// Vincular todos os 'eventListeners'
 function bindEvents() {
-    // Eventos de pesquisa e filtragem
     elements.searchInput.addEventListener('input', debounce(applyFilters, 300));
     elements.filterStatus.addEventListener('change', applyFilters);
     elements.sortBy.addEventListener('change', applyFilters);
-    elements.clearFiltersBtn.addEventListener('click', clearFilters);
+    if(elements.clearFiltersBtn) elements.clearFiltersBtn.addEventListener('click', clearFilters);
 
-    // Eventos modal
     elements.addUnitBtn.addEventListener('click', openAddModal);
     elements.closeModalBtn.addEventListener('click', closeModal);
     elements.cancelModalBtn.addEventListener('click', closeModal);
     elements.unitForm.addEventListener('submit', handleFormSubmit);
-
-    // Eventos deletar modal
     elements.cancelDeleteBtn.addEventListener('click', closeDeleteModal);
     elements.confirmDeleteBtn.addEventListener('click', confirmDelete);
-
-    // Fechar modais quando clicado fora
-    elements.unitModal.addEventListener('click', function(e) {
-        if (e.target === elements.unitModal) closeModal();
-    });
-    elements.deleteModal.addEventListener('click', function(e) {
-        if (e.target === elements.deleteModal) closeDeleteModal();
-    });
-
-    // Tecla ESC para fechar modais
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            closeModal();
-            closeDeleteModal();
-        }
-    });
 }
 
-// Funções API
 async function loadUnits() {
     try {
         showLoadingState();
         const response = await fetch(apiUrl);
-                
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-                
+        if (!response.ok) throw new Error("Erro de conexão com a API");
         allUnits = await response.json();
         filteredUnits = [...allUnits];
         applyFilters();
-        showToast('Unidades carregadas com sucesso!', 'success');
     } catch (error) {
-        console.error('Erro ao carregar unidades:', error);
         showErrorState();
-        showToast('Erro ao carregar unidades. Verifique sua conexão.', 'error');
     }
 }
 
-async function createUnit(unitData) {
-    try {
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(unitData)
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const newUnit = await response.json();
-        allUnits.push(newUnit);
-        applyFilters();
-        showToast('Unidade criada com sucesso!', 'success');
-        return newUnit;
-    } catch (error) {
-        console.error('Erro ao criar unidade:', error);
-        showToast('Erro ao criar unidade. Tente novamente.', 'error');
-        throw error;
-    }
-}
-
-async function updateUnit(id, unitData) {
-    try {
-        const response = await fetch(`${apiUrl}/${id}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(unitData)
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const updatedUnit = await response.json();
-        const index = allUnits.findIndex(unit => unit.id === id);
-        if (index !== -1) {
-            allUnits[index] = updatedUnit;
-        }
-        applyFilters();
-        showToast('Unidade atualizada com sucesso!', 'success');
-        return updatedUnit;
-    } catch (error) {
-        console.error('Erro ao atualizar unidade:', error);
-        showToast('Erro ao atualizar unidade. Tente novamente.', 'error');
-        throw error;
-    }
-}
-
-async function deleteUnit(id) {
-    try {
-        const response = await fetch(`${apiUrl}/${id}`, {
-            method: 'DELETE'
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        allUnits = allUnits.filter(unit => unit.id !== id);
-        applyFilters();
-        showToast('Unidade excluída com sucesso!', 'success');
-    } catch (error) {
-        console.error('Erro ao excluir unidade:', error);
-        showToast('Erro ao excluir unidade. Tente novamente.', 'error');
-        throw error;
-    }
-}
-
-// Funções de Busca e Filtragem
 function applyFilters() {
     const searchTerm = elements.searchInput.value.toLowerCase().trim();
     const statusFilter = elements.filterStatus.value;
     const sortBy = elements.sortBy.value;
 
-    // Filtrar unidades
     filteredUnits = allUnits.filter(unit => {
-        const matchesSearch = !searchTerm || 
-            unit.endereco.toLowerCase().includes(searchTerm);
-        const matchesStatus = !statusFilter || 
-            unit.status === statusFilter;
-                
+        const matchesSearch = !searchTerm || unit.endereco.toLowerCase().includes(searchTerm);
+        const matchesStatus = !statusFilter || unit.status === statusFilter;
         return matchesSearch && matchesStatus;
     });
 
-    // Ordenar unidades
     filteredUnits.sort((a, b) => {
-        if (sortBy === 'endereco') {
-            return a.endereco.localeCompare(b.endereco);
-        } else if (sortBy === 'status') {
-            return a.status.localeCompare(b.status);
-        }
-        return 0;
+        return sortBy === 'endereco' ? a.endereco.localeCompare(b.endereco) : a.status.localeCompare(b.status);
     });
 
     renderUnits();
-    updateUnitsCount();
+    elements.unitsCount.textContent = filteredUnits.length;
 }
 
-function clearFilters() {
-    elements.searchInput.value = '';
-    elements.filterStatus.value = '';
-    elements.sortBy.value = 'endereco';
-    applyFilters();
-}
-
-// Funções para exibir/renderizar
 function renderUnits() {
     if (filteredUnits.length === 0) {
         showEmptyState();
         return;
     }
 
-    const tbody = elements.unitsTableBody;
-    tbody.innerHTML = filteredUnits.map(unit => `
-        <tr class="hover:bg-gray-50 transition-colors">
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                #${unit.id}
+    elements.unitsTableBody.innerHTML = filteredUnits.map(unit => `
+        <tr class="hover:bg-gray-50">
+            <td class="px-6 py-4 font-medium text-gray-900">#${unit.id}</td>
+            <td class="px-6 py-4 text-sm">${escapeHtml(unit.endereco)}</td>
+            <td class="px-6 py-4 text-xs text-gray-500">
+                Temp: ${unit.temperaturaC ?? 'N/A'}°C | Vent: ${unit.velocidadeVentoKmh ?? 'N/A'}km/h<br>
+                Carga: ${unit.cargaMw ?? 'N/A'}MW | Idade: ${unit.idadeAnos ?? 'N/A'} anos
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                ${escapeHtml(unit.endereco)}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap">
+            <td class="px-6 py-4">
                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusClasses(unit.status)}">
                     <i class="fas ${getStatusIcon(unit.status)} mr-1"></i>
                     ${getStatusLabel(unit.status)}
                 </span>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <div class="flex items-center justify-end space-x-2">
-                    <button 
-                        onclick="openEditModal(${unit.id})"
-                        class="text-blue-600 hover:text-blue-900 transition-colors p-1"
-                        title="Editar unidade"
-                    >
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button 
-                        onclick="openDeleteModal(${unit.id})"
-                        class="text-red-600 hover:text-red-900 transition-colors p-1"
-                        title="Excluir unidade"
-                    >
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
+            <td class="px-6 py-4 text-right space-x-2">
+                <button onclick="openEditModal(${unit.id})" class="text-blue-600 hover:text-blue-900"><i class="fas fa-edit"></i></button>
+                <button onclick="openDeleteModal(${unit.id})" class="text-red-600 hover:text-red-900"><i class="fas fa-trash"></i></button>
             </td>
         </tr>
     `).join('');
 }
 
-function showLoadingState() {
-    elements.unitsTableBody.innerHTML = `
-        <tr class="text-center">
-            <td colspan="4" class="px-6 py-12 text-gray-500">
-                <div class="flex flex-col items-center">
-                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
-                    <p class="text-lg font-medium">Carregando unidades...</p>
-                    <p class="text-sm">Aguarde enquanto os dados são carregados da API</p>
-                </div>
-            </td>
-        </tr>
-    `;
-}
+async function handleFormSubmit(e) {
+    e.preventDefault();
+    const formData = new FormData(elements.unitForm);
 
-function showEmptyState() {
-    const hasFilters = elements.searchInput.value || elements.filterStatus.value;
-    elements.unitsTableBody.innerHTML = `
-        <tr class="text-center">
-            <td colspan="4" class="px-6 py-12 text-gray-500">
-                <div class="flex flex-col items-center">
-                    <i class="fas ${hasFilters ? 'fa-search' : 'fa-database'} text-4xl text-gray-300 mb-4"></i>
-                    <p class="text-lg font-medium">
-                        ${hasFilters ? 'Nenhuma unidade encontrada' : 'Nenhuma unidade cadastrada'}
-                    </p>
-                    <p class="text-sm">
-                        ${hasFilters ? 'Tente ajustar os filtros de busca' : 'Clique em "Nova Unidade" para começar'}
-                    </p>
-                </div>
-            </td>
-        </tr>
-    `;
-}
+    const unitData = {
+        endereco: formData.get('endereco').trim(),
+        status: formData.get('status'),
+        idadeAnos: formData.get('idadeAnos') ? parseInt(formData.get('idadeAnos')) : null,
+        temperaturaC: formData.get('temperaturaC') ? parseFloat(formData.get('temperaturaC')) : null,
+        velocidadeVentoKmh: formData.get('velocidadeVentoKmh') ? parseFloat(formData.get('velocidadeVentoKmh')) : null,
+        cargaMw: formData.get('cargaMw') ? parseFloat(formData.get('cargaMw')) : null,
+        diasUltimaManutencao: formData.get('diasUltimaManutencao') ? parseInt(formData.get('diasUltimaManutencao')) : null,
+        condicaoClimatica: formData.get('condicaoClimatica') || null
+    };
 
-function showErrorState() {
-    elements.unitsTableBody.innerHTML = `
-        <tr class="text-center">
-            <td colspan="4" class="px-6 py-12 text-gray-500">
-                <div class="flex flex-col items-center">
-                    <i class="fas fa-exclamation-triangle text-4xl text-red-300 mb-4"></i>
-                    <p class="text-lg font-medium text-red-600">Erro ao carregar unidades</p>
-                    <p class="text-sm">Verifique sua conexão e tente novamente</p>
-                    <button 
-                        onclick="loadUnits()" 
-                        class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                        <i class="fas fa-refresh mr-2"></i>
-                        Tentar Novamente
-                    </button>
-                </div>
-            </td>
-        </tr>
-    `;
-}
+    try {
+        const method = currentEditingId ? 'PUT' : 'POST';
+        const url = currentEditingId ? `${apiUrl}/${currentEditingId}` : apiUrl;
 
-function updateUnitsCount() {
-    elements.unitsCount.textContent = filteredUnits.length;
-}
+        const response = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(unitData)
+        });
 
-// Funções Modal
-function openAddModal() {
-    currentEditingId = null;
-    elements.modalTitle.textContent = 'Nova Unidade';
-    elements.unitForm.reset();
-    elements.saveUnitBtn.innerHTML = '<i class="fas fa-save mr-2"></i>Salvar';
-    showModal();
+        if (!response.ok) {
+            const serverMessage = await response.text();
+            throw new Error(serverMessage || "Falha na operação.");
+        }
+
+        showToast(currentEditingId ? 'Unidade atualizada!' : 'Unidade criada com sucesso!', 'success');
+        closeModal();
+        loadUnits();
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
 }
 
 function openEditModal(id) {
@@ -320,168 +150,77 @@ function openEditModal(id) {
     elements.modalTitle.textContent = 'Editar Unidade';
     elements.unitAddress.value = unit.endereco;
     elements.unitStatus.value = unit.status;
-    elements.saveUnitBtn.innerHTML = '<i class="fas fa-save mr-2"></i>Atualizar';
-    showModal();
-}
 
-function showModal() {
+    document.getElementById('unit-idade').value = unit.idadeAnos ?? '';
+    document.getElementById('unit-temp').value = unit.temperaturaC ?? '';
+    document.getElementById('unit-vento').value = unit.velocidadeVentoKmh ?? '';
+    document.getElementById('unit-carga').value = unit.cargaMw ?? '';
+    document.getElementById('unit-manutencao').value = unit.diasUltimaManutencao ?? '';
+    document.getElementById('unit-clima').value = unit.condicaoClimatica ?? '';
+
     elements.unitModal.classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
-    elements.unitAddress.focus();
 }
 
-function closeModal() {
-    elements.unitModal.classList.add('hidden');
-    document.body.style.overflow = 'auto';
+function openAddModal() {
+    currentEditingId = null;
+    elements.modalTitle.textContent = 'Nova Unidade';
     elements.unitForm.reset();
-    currentEditingId = null;
+    elements.unitModal.classList.remove('hidden');
 }
 
-function openDeleteModal(id) {
-    currentEditingId = id;
-    elements.deleteModal.classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
-}
-
-function closeDeleteModal() {
-    elements.deleteModal.classList.add('hidden');
-    document.body.style.overflow = 'auto';
-    currentEditingId = null;
-}
-
-// Manipulação do Formulário
-async function handleFormSubmit(e) {
-    e.preventDefault();
-            
-    const formData = new FormData(elements.unitForm);
-    const unitData = {
-        endereco: formData.get('endereco').trim(),
-        status: formData.get('status')
-    };
-
-    // Validação
-    if (!unitData.endereco || !unitData.status) {
-        showToast('Por favor, preencha todos os campos obrigatórios.', 'error');
-        return;
-    }
-
-    try {
-        elements.saveUnitBtn.disabled = true;
-        elements.saveUnitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Salvando...';
-
-        if (currentEditingId) {
-            await updateUnit(currentEditingId, unitData);
-        } else {
-            await createUnit(unitData);
-        }
-
-        closeModal();
-    } catch (error) {
-        // Error already handled in API functions
-    } finally {
-        elements.saveUnitBtn.disabled = false;
-        elements.saveUnitBtn.innerHTML = currentEditingId ? 
-            '<i class="fas fa-save mr-2"></i>Atualizar' : 
-            '<i class="fas fa-save mr-2"></i>Salvar';
-    }
-}
+function closeModal() { elements.unitModal.classList.add('hidden'); }
+function openDeleteModal(id) { currentEditingId = id; elements.deleteModal.classList.remove('hidden'); }
+function closeDeleteModal() { elements.deleteModal.classList.add('hidden'); }
 
 async function confirmDelete() {
-    if (!currentEditingId) return;
-
     try {
-        elements.confirmDeleteBtn.disabled = true;
-        elements.confirmDeleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Excluindo...';
-
-        await deleteUnit(currentEditingId);
+        await fetch(`${apiUrl}/${currentEditingId}`, { method: 'DELETE' });
+        showToast('Unidade removida!', 'success');
         closeDeleteModal();
-    } catch (error) {
-        // Error already handled in API functions
-    } finally {
-        elements.confirmDeleteBtn.disabled = false;
-        elements.confirmDeleteBtn.innerHTML = '<i class="fas fa-trash mr-2"></i>Excluir';
+        loadUnits();
+    } catch (e) {
+        showToast('Erro ao deletar', 'error');
     }
 }
 
-// Utility Functions
+function clearFilters() {
+    elements.searchInput.value = '';
+    elements.filterStatus.value = '';
+    applyFilters();
+}
+
 function getStatusClasses(status) {
-    const classes = {
-        'ativo': 'bg-green-100 text-green-800',
-        'inativo': 'bg-red-100 text-red-800',
-        'manutencao': 'bg-yellow-100 text-yellow-800'
+    const map = {
+        'NORMAL': 'bg-green-100 text-green-800',
+        'FALHA': 'bg-red-100 text-red-800 animate-pulse',
+        'IDENTIFICADO': 'bg-purple-100 text-purple-800',
+        'EM_REPARO': 'bg-yellow-100 text-yellow-800',
+        'NORMALIZADO': 'bg-blue-100 text-blue-800'
     };
-    return classes[status] || 'bg-gray-100 text-gray-800';
+    return map[status] || 'bg-gray-100 text-gray-800';
 }
 
 function getStatusIcon(status) {
-    const icons = {
-        'ativo': 'fa-check-circle',
-        'inativo': 'fa-times-circle',
-        'manutencao': 'fa-tools'
-    };
-    return icons[status] || 'fa-question-circle';
+    const map = { 'NORMAL': 'fa-check-circle', 'FALHA': 'fa-bolt', 'IDENTIFICADO': 'fa-search', 'EM_REPARO': 'fa-tools', 'NORMALIZADO': 'fa-sync' };
+    return map[status] || 'fa-question-circle';
 }
 
 function getStatusLabel(status) {
-    const labels = {
-        'ativo': 'Ativo',
-        'inativo': 'Inativo',
-        'manutencao': 'Manutenção'
-    };
-    return labels[status] || status;
+    const map = { 'NORMAL': 'Normal', 'FALHA': 'Falha Iminente', 'IDENTIFICADO': 'Identificado', 'EM_REPARO': 'Em Reparo', 'NORMALIZADO': 'Normalizado' };
+    return map[status] || status;
 }
 
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
+function showLoadingState() { elements.unitsTableBody.innerHTML = '<tr><td colspan="5" class="text-center py-6 text-gray-500">Buscando telemetria...</td></tr>'; }
+function showEmptyState() { elements.unitsTableBody.innerHTML = '<tr><td colspan="5" class="text-center py-6 text-gray-500">Nenhum registro encontrado.</td></tr>'; }
+function showErrorState() { elements.unitsTableBody.innerHTML = '<tr><td colspan="5" class="text-center py-6 text-red-500">Erro na comunicação.</td></tr>'; }
+function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+function debounce(f, w) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => f(...a), w); }; }
 
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
-}
-
-// Toast Notifications
-function showToast(message, type = 'info') {
+function showToast(msg, type = 'info') {
     const toast = document.createElement('div');
-    const bgColor = type === 'success' ? 'bg-green-500' : 
-                    type === 'error' ? 'bg-red-500' : 'bg-blue-500';
-    const icon = type === 'success' ? 'fa-check-circle' : 
-                type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle';
-
-    toast.className = `${bgColor} text-white px-4 py-3 rounded-lg shadow-lg flex items-center space-x-2 transform transition-all duration-300 translate-x-full opacity-0`;
-    toast.innerHTML = `
-        <i class="fas ${icon}"></i>
-        <span>${escapeHtml(message)}</span>
-        <button onclick="this.parentElement.remove()" class="ml-2 text-white hover:text-gray-200">
-            <i class="fas fa-times"></i>
-        </button>
-    `;
-
+    const color = type === 'success' ? 'bg-green-600' : 'bg-red-600';
+    toast.className = `${color} text-white px-4 py-2 rounded-md shadow-md text-sm font-medium`;
+    toast.textContent = msg;
     elements.toastContainer.appendChild(toast);
-
-    // Animate in
-    setTimeout(() => {
-        toast.classList.remove('translate-x-full', 'opacity-0');
-    }, 100);
-
-    // Auto remove after 5 seconds
-    setTimeout(() => {
-        if (toast.parentElement) {
-            toast.classList.add('translate-x-full', 'opacity-0');
-            setTimeout(() => toast.remove(), 300);
-        }
-    }, 5000);
+    setTimeout(() => toast.remove(), 4000);
 }
-
-// Global functions for inline event handlers
-window.openEditModal = openEditModal;
-window.openDeleteModal = openDeleteModal;
