@@ -85,8 +85,8 @@ public class UnidadeService {
     }
 
     /**
-     * MÁQUINA DE ESTADOS FINITOS (Requisito da AEP)
-     * Garante que o ciclo de manutenção da Copel siga o fluxo correto.
+        MÁQUINA DE ESTADOS FINITOS
+        Garante que o ciclo de manutenção da Copel siga o fluxo correto.
      */
     private void validarTransicaoDeStatus(Status atual, Status novo) {
         boolean transicaoValida = false;
